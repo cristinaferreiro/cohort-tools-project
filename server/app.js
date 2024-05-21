@@ -2,6 +2,10 @@ const express = require("express");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
 const cors = require("cors")
+const mongoose = require("mongoose");
+const Schema = mongoose.Schema;
+
+
 const PORT = 5005;
 
 // STATIC DATA
@@ -26,6 +30,59 @@ app.use(morgan("dev"));
 app.use(express.static("public"));
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+
+
+mongoose
+  .connect("mongodb://127.0.0.1:27017/cohort-tools-api")
+  .then(x => console.log(`Connected to Database: "${x.connections[0].name}"`))
+  .catch(err => console.error("Error connecting to MongoDB", err));
+
+
+//CREATE COHORT SCHEMA
+
+const cohortSchema = new Schema({
+
+  cohortSlug: String,
+  cohortName: String,
+  program: String,
+  format: String,
+  campus: String,
+  startDate: Date,
+  endDate: Date,
+  inProgress: Boolean,
+  programManager: String,
+  leadTeacher: String,
+  totalHours: Number
+});
+
+const cohort = mongoose.model("cohort", cohortSchema);
+module.exports = cohort;
+
+
+//CREATE STUDENT SCHEMA
+
+const studentSchema = new Schema({
+  firstName: String,
+  lastName: String,
+  email: String,
+  phone: String,
+  linkedinUrl: String,
+  languages: [String],
+  program: String,
+  background: String,
+  image: String,
+  cohort: mongoose.Types.ObjectId,
+  projects: [String]
+
+});
+
+
+const student = mongoose.model("student", studentSchema);
+module.exports = student;
+
+
+
+
 
 
 // ROUTES - https://expressjs.com/en/starter/basic-routing.html
