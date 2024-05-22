@@ -8,10 +8,15 @@ const Schema = mongoose.Schema;
 
 const PORT = 5005;
 
+// import database
+require('./db/database-connection')
+
 // STATIC DATA
 // Devs Team - Import the provided files with JSON data of students and cohorts here:
-const students = require('./students.json')
-const cohorts = require('./cohorts.json')
+const Students = require('./models/Student.model')
+const Cohorts = require('./models/Cohort.model');
+const Cohort = require("./models/Cohort.model");
+
 
 
 // INITIALIZE EXPRESS APP - https://expressjs.com/en/4x/api.html#express
@@ -32,55 +37,146 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
 
-mongoose
-  .connect("mongodb://127.0.0.1:27017/cohort-tools-api")
-  .then(x => console.log(`Connected to Database: "${x.connections[0].name}"`))
-  .catch(err => console.error("Error connecting to MongoDB", err));
+//------ STUDENTS ROUTES -----------
 
 
-//CREATE COHORT SCHEMA
 
-const cohortSchema = new Schema({
+app.post('/api/students', (req, res) => {
 
-  cohortSlug: String,
-  cohortName: String,
-  program: String,
-  format: String,
-  campus: String,
-  startDate: Date,
-  endDate: Date,
-  inProgress: Boolean,
-  programManager: String,
-  leadTeacher: String,
-  totalHours: Number
-});
+  const { firstName, lastName, email, phone, linkedinUrl, languages, program, background, image, cohort, projects } = req.body
 
-const cohort = mongoose.model("cohort", cohortSchema);
-module.exports = cohort;
+  Students
+    .create({ firstName, lastName, email, phone, linkedinUrl, languages, program, background, image, cohort, projects })
+    .then(newStudent => res.sendStatus(201))
+    .catch(err => res.json({ code: 500, errorDetails: err }))
+
+})
 
 
-//CREATE STUDENT SCHEMA
+app.get('/api/students', (req, res) => {
 
-const studentSchema = new Schema({
-  firstName: String,
-  lastName: String,
-  email: String,
-  phone: String,
-  linkedinUrl: String,
-  languages: [String],
-  program: String,
-  background: String,
-  image: String,
-  cohort: mongoose.Types.ObjectId,
-  projects: [String]
-
-});
+  Students
+    .find()
+    .populate('cohort')
+    .then(allStudents => res.json(allStudents))
+    .catch(err => res.json({ code: 500, errorDetails: err }))
+})
 
 
-const student = mongoose.model("student", studentSchema);
-module.exports = student;
+// Retrieves all of the students for a given cohort
+app.get('/api/students/cohort/:cohortId', (req, res) => {
+
+  const { cohortId } = req.params
+
+  Students
+    .find({ cohort: cohortId })
+    .populate('cohort')
+    .then(allStudents => res.json(allStudents))
+    .catch(err => res.json({ code: 500, errorDetails: err }))
+
+})
 
 
+app.get('/api/students/:studentId', (req, res) => {
+
+
+  const { studentId } = req.params
+
+  Students
+    .findById(studentId)
+    .then(student => res.json(student))
+    .catch(err => res.json({ code: 500, errorDetails: err }))
+
+})
+
+
+app.put('/api/students/:studentId', (req, res) => {
+
+  const { studentId } = req.params
+  const { firstName, lastName, email, phone, linkedinUrl, languages, program, background, image, cohort, projects } = req.body
+
+  Students
+    .findByIdAndUpdate(studentId, { firstName, lastName, email, phone, linkedinUrl, languages, program, background, image, cohort, projects })
+    .then(updatedStudent => res.sendStatus(204))
+    .catch(err => res.json({ code: 500, errorDetails: err }))
+
+})
+
+
+
+app.delete('/api/students/:studentId', (req, res) => {
+
+  const { studentId } = req.params
+
+  Students
+    .findByIdAndDelete(studentId)
+    .then(() => res.sendStatus(204))
+    .catch(err => res.json({ code: 500, errorDetails: err }))
+})
+
+
+
+//------ STUDENTS ROUTES -----------
+
+app.post('/api/cohorts', (req, res) => {
+
+  const { cohortSlug, cohortName, program, format, campus, startDate, endDate, inProgress, programManager, leadTeacher, totalHours } = req.body
+
+  Cohorts
+    .create({ cohortSlug, cohortName, program, format, campus, startDate, endDate, inProgress, programManager, leadTeacher, totalHours })
+    .then(newCohort => res.sendStatus(201))
+    .catch(err => res.json({ code: 500, errorDetails: err }))
+
+})
+
+
+app.get('/api/cohorts', (req, res) => {
+
+  Cohorts
+    .find()
+    .then(allCohorts => res.json(allCohorts))
+    .catch(err => res.json({ code: 500, errorDetails: err }))
+})
+
+
+app.get('/api/cohorts/:cohortId', (req, res) => {
+
+
+  const { cohortId } = req.params
+
+  Cohorts
+    .findById(cohortId)
+    .then(cohort => res.json(cohort))
+    .catch(err => res.json({ code: 500, errorDetails: err }))
+
+})
+
+
+
+
+app.put('/api/cohorts/:cohortId', (req, res) => {
+
+  const { cohortId } = req.params
+  const { cohortSlug, cohortName, program, format, campus, startDate, endDate, inProgress, programManager, leadTeacher, totalHours } = req.body
+
+  Cohort
+    .findByIdAndUpdate(cohortId, { cohortSlug, cohortName, program, format, campus, startDate, endDate, inProgress, programManager, leadTeacher, totalHours })
+    .then(updatedCohort => res.sendStatus(204))
+    .catch(err => res.json({ code: 500, errorDetails: err }))
+
+})
+
+
+
+app.delete('/api/cohorts/:cohortId', (req, res) => {
+
+  const { cohortId } = req.params
+
+  Cohort
+    .findByIdAndDelete(cohortId)
+    .then(() => res.sendStatus(204))
+    .catch(err => res.json({ code: 500, errorDetails: err }))
+})
 
 
 
@@ -88,20 +184,19 @@ module.exports = student;
 // ROUTES - https://expressjs.com/en/starter/basic-routing.html
 // Devs Team - Start working on the routes here:
 // ...
-app.get("/docs", (req, res) => {
-  res.sendFile(__dirname + "/views/docs.html");
-});
+// app.get("/docs", (req, res) => {
+//   res.sendFile(__dirname + "/views/docs.html");
+// });
 
-app.get('/api/cohorts', (req, res) => {
+// app.get('/api/cohorts', (req, res) => {
 
-  res.json(cohorts)
-})
+//   res.json(cohorts)
+// })
 
-app.get('/api/students', (req, res) => {
+// app.get('/api/students', (req, res) => {
 
-  res.json(students)
-})
-
+//   res.json(students)
+// })
 
 
 
